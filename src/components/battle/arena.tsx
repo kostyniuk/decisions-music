@@ -117,11 +117,11 @@ function Slot({ side, album, score, direction, loading, outcome, onStep }: SlotP
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.2 }}
         >
-          <h3 className="font-display text-2xl uppercase leading-tight tracking-wide text-balance">{album.title}</h3>
-          <p className="text-sm text-white/60">
+          <h3 className="font-display text-lg uppercase leading-tight tracking-wide text-balance sm:text-2xl">{album.title}</h3>
+          <p className="text-xs text-white/60 sm:text-sm">
             {album.artist} · {album.year}
           </p>
-          <p className="mt-2 line-clamp-3 min-h-[3lh] text-xs leading-relaxed text-white/45">{album.description}</p>
+          <p className="mt-2 line-clamp-3 hidden min-h-[3lh] text-xs leading-relaxed text-white/45 sm:block">{album.description}</p>
         </motion.div>
       </AnimatePresence>
 
@@ -131,12 +131,12 @@ function Slot({ side, album, score, direction, loading, outcome, onStep }: SlotP
         ) : score && style ? (
           <>
             <div className="flex items-baseline gap-2">
-              <CountUp value={score.score} decimals={1} className={cn("font-display text-6xl", style.text)} />
-              <span className="text-sm text-white/40">/100</span>
+              <CountUp value={score.score} decimals={1} className={cn("font-display text-4xl sm:text-6xl", style.text)} />
+              <span className="hidden text-sm text-white/40 sm:inline">/100</span>
             </div>
-            <span className={cn("rounded-full border px-2.5 py-0.5 text-xs font-medium uppercase tracking-wider", style.badge)}>
+            <span className={cn("rounded-full border px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider sm:text-xs", style.badge)}>
               {score.level}
-              {!score.refused && <span className="ml-1.5 opacity-60">{Math.round(score.confidence * 100)}% sure</span>}
+              {!score.refused && <span className="ml-1.5 hidden opacity-60 sm:inline">{Math.round(score.confidence * 100)}% sure</span>}
             </span>
             {!score.refused && (
               <div className="w-full">
@@ -172,14 +172,14 @@ export function Arena({ left, right, scores, directions, loading, onStep, onTopT
 
   return (
     <section className="relative">
-      <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-[1fr_auto_1fr]">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2 sm:gap-8">
         <Slot side="left" album={left} score={l} direction={directions.left} loading={loading} outcome={outcomeFor(l, r)} onStep={(d) => onStep("left", d)} />
 
-        <div className="flex flex-row items-center justify-center gap-3 md:mt-40 md:flex-col">
+        <div className="mt-24 flex flex-col items-center justify-center gap-3 sm:mt-40">
           <AnimatePresence mode="wait">
             <motion.span
               key={tie ? "tie" : "vs"}
-              className="font-display bg-gradient-to-b from-white to-white/30 bg-clip-text text-6xl text-transparent select-none"
+              className="font-display bg-gradient-to-b from-white to-white/30 bg-clip-text text-4xl text-transparent select-none sm:text-6xl"
               initial={{ scale: 0.4, opacity: 0 }}
               animate={loading ? { scale: [1, 1.15, 1], rotate: [0, -4, 4, 0], opacity: 1 } : { scale: 1, rotate: 0, opacity: 1 }}
               exit={{ scale: 0.4, opacity: 0 }}
@@ -188,11 +188,11 @@ export function Arena({ left, right, scores, directions, loading, onStep, onTopT
               {tie ? "TIE" : "VS"}
             </motion.span>
           </AnimatePresence>
-          <Button variant="outline" size="sm" onClick={onTopTwo} disabled={!scores} className="gap-1.5">
-            <Trophy /> Top 2
+          <Button variant="outline" size="sm" onClick={onTopTwo} disabled={!scores} className="gap-1.5" aria-label="Battle the top 2">
+            <Trophy /> <span className="hidden sm:inline">Top 2</span>
           </Button>
-          <Button variant="ghost" size="sm" onClick={onShuffle} className="gap-1.5 text-white/60">
-            <Shuffle /> Shuffle
+          <Button variant="ghost" size="sm" onClick={onShuffle} className="gap-1.5 text-white/60" aria-label="Shuffle">
+            <Shuffle /> <span className="hidden sm:inline">Shuffle</span>
           </Button>
         </div>
 

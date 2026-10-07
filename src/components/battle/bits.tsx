@@ -70,7 +70,7 @@ export function Distribution({ distribution }: { distribution: { label: string; 
               transition={{ type: "spring", stiffness: 90, damping: 15, delay: 0.15 + i * 0.05 }}
             />
           </div>
-          <span className="w-full truncate text-center text-[9px] uppercase tracking-wide text-white/40">{d.label}</span>
+          <span className="hidden w-full truncate text-center text-[9px] uppercase tracking-wide text-white/40 sm:block">{d.label}</span>
         </div>
       ))}
     </div>

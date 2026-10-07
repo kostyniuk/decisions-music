@@ -87,7 +87,6 @@ async function mockDecision(params: DecisionCreateParams): Promise<Decision> {
 }
 
 export async function scoreAlbums(word: string, withCovers: boolean): Promise<ScoreResponse> {
-  const started = performance.now();
   const params: DecisionCreateParams = {
     model: DECISIONS_MODEL,
     input: await buildInput(withCovers),
@@ -98,6 +97,8 @@ export async function scoreAlbums(word: string, withCovers: boolean): Promise<Sc
       levels: [...LEVELS],
     })),
   };
+  // Time only the API call, not the one-off cover downloads in buildInput.
+  const started = performance.now();
   const decision = MOCK ? await mockDecision(params) : await client.decisions.create(params);
   const latencyMs = Math.round(performance.now() - started);
 
