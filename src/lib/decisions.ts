@@ -10,7 +10,24 @@ export const DECISIONS_MODEL = process.env.DECISIONS_MODEL ?? "gpt-6-luna";
 let openai: OpenAI | undefined;
 const client = { get decisions() { return (openai ??= new OpenAI()).decisions; } };
 
-const describe = (a: Album) => `[${a.id}] "${a.title}" by ${a.artist} (${a.year}): ${a.description}`;
+const list = (items: string[]) => (items.length ? items.join(", ") : "none");
+
+/** Everything the model gets to know about one album: curated profile plus the Wikipedia intro for grounding. */
+const describe = (a: Album) =>
+  [
+    `### [${a.id}] "${a.title}" by ${a.artist} (released ${a.released})`,
+    `Summary: ${a.description}`,
+    `Sound: ${a.sound}`,
+    `Producers: ${list(a.producers)}. Features: ${list(a.features)}.`,
+    `Standout tracks: ${list(a.standoutTracks)}.`,
+    `Moods: ${list(a.moods)}.`,
+    `Themes: ${list(a.themes)}.`,
+    `Fits: ${list(a.settings)}. Does NOT fit: ${list(a.notFor)}.`,
+    `Context: ${a.context}`,
+    a.wiki ? `Wikipedia (${a.wiki.title}): ${a.wiki.intro}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
 const coverCache = new Map<string, Promise<string | null>>();
 
@@ -35,7 +52,9 @@ function coverDataUrl(album: Album) {
 async function buildInput(withCovers: boolean): Promise<DecisionCreateParams["input"]> {
   const intro =
     "Catalog of rap / hip-hop / adjacent R&B albums released 2015 or later. Each entry is tagged with its id in brackets. " +
-    "Judge albums on their actual music, lyrics, mood and cultural reputation — use your own knowledge, not just the blurb.";
+    "Each profile covers sound, moods, themes, situations it fits and does not fit, reception, and a Wikipedia intro. " +
+    "Judge albums on their actual music, lyrics, mood and cultural reputation. Treat the profiles as the primary source of facts; " +
+    "use your own knowledge only to fill gaps, never to contradict them.";
   if (!withCovers) return [intro, ...albums.map(describe)].join("\n\n");
 
   const parts: DecisionInputPart[] = [{ type: "input_text", text: intro }];
