@@ -2,37 +2,13 @@ import "server-only";
 import OpenAI from "openai";
 import type { Decision, DecisionCreateParams, DecisionInputPart } from "openai/resources/decisions";
 import { albums, type Album } from "@/lib/albums";
+import { LEVELS, type AlbumScore, type ScoreResponse } from "@/lib/scoring";
 
 export const DECISIONS_MODEL = process.env.DECISIONS_MODEL ?? "gpt-6-luna";
 
-/** Ordered rubric, weakest to strongest. The API returns the chosen level plus a probability per level. */
-export const LEVELS = [
-  { label: "No match", description: "The word has nothing to do with this album's sound, mood or themes." },
-  { label: "Faint", description: "A loose or occasional connection; you'd have to squint." },
-  { label: "Present", description: "Clearly part of the album, but not what defines it." },
-  { label: "Strong", description: "A major, recurring element of the album's identity." },
-  { label: "Defining", description: "The album is practically the textbook example of this word." },
-] satisfies DecisionCreateParams.QuestionParamScore.Level[];
-
-export type AlbumScore = {
-  id: string;
-  /** Expected score in 0–100, computed from the full level distribution so ties break smoothly. */
-  score: number;
-  level: string;
-  confidence: number;
-  distribution: { label: string; probability: number }[];
-  refused: boolean;
-};
-
-export type ScoreResponse = {
-  word: string;
-  model: string;
-  latencyMs: number;
-  usage: Decision["usage"];
-  scores: AlbumScore[];
-};
-
-const client = new OpenAI();
+// Lazily constructed so mock mode works without OPENAI_API_KEY.
+let openai: OpenAI | undefined;
+const client = { get decisions() { return (openai ??= new OpenAI()).decisions; } };
 
 const describe = (a: Album) => `[${a.id}] "${a.title}" by ${a.artist} (${a.year}): ${a.description}`;
 
@@ -81,7 +57,7 @@ function toAlbumScore(id: string, answer: Decision["answers"][number] | undefine
   const chosen = answer.probabilities.find((p) => p.value === answer.score);
   return {
     id,
-    score: Math.round((expected / maxValue) * 100),
+    score: Math.round((expected / maxValue) * 1000) / 10,
     level: chosen?.label ?? LEVELS[Math.min(answer.score, LEVELS.length - 1)].label,
     confidence: answer.confidence,
     distribution: answer.probabilities.map(({ label, probability }) => ({ label, probability })),
@@ -89,18 +65,40 @@ function toAlbumScore(id: string, answer: Decision["answers"][number] | undefine
   };
 }
 
+export const MOCK = process.env.DECISIONS_MOCK === "1";
+
+/** Deterministic fake /v1/decisions response for UI work without API access. Same shape as the real thing. */
+async function mockDecision(params: DecisionCreateParams): Promise<Decision> {
+  await new Promise((r) => setTimeout(r, 600));
+  let seed = [...JSON.stringify(params.questions)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7);
+  const rand = () => ((seed = (seed * 1103515245 + 12345) | 0) >>> 0) / 2 ** 32;
+  return {
+    model: `${params.model} (mock)`,
+    usage: { input_tokens: 0, output_tokens: 0, total_tokens: 0, input_tokens_details: { cache_write_tokens: 0, cached_tokens: 0 }, output_tokens_details: { reasoning_tokens: 0 } },
+    answers: params.questions.map((q) => {
+      const peak = rand() * (LEVELS.length - 1);
+      const weights = LEVELS.map((_, v) => Math.exp(-((v - peak) ** 2)));
+      const total = weights.reduce((a, b) => a + b, 0);
+      const probabilities = LEVELS.map((l, v) => ({ label: l.label, value: v, probability: weights[v] / total }));
+      const best = probabilities.reduce((a, b) => (b.probability > a.probability ? b : a));
+      return { type: "score", name: q.name ?? null, score: best.value, confidence: best.probability, probabilities };
+    }),
+  };
+}
+
 export async function scoreAlbums(word: string, withCovers: boolean): Promise<ScoreResponse> {
   const started = performance.now();
-  const decision = await client.decisions.create({
+  const params: DecisionCreateParams = {
     model: DECISIONS_MODEL,
     input: await buildInput(withCovers),
     questions: albums.map((album) => ({
       type: "score",
       name: album.id,
       instructions: `How strongly does the album [${album.id}] "${album.title}" by ${album.artist} embody the word or vibe "${word}"?`,
-      levels: LEVELS,
+      levels: [...LEVELS],
     })),
-  });
+  };
+  const decision = MOCK ? await mockDecision(params) : await client.decisions.create(params);
   const latencyMs = Math.round(performance.now() - started);
 
   // Answers come back in question order; match by name first in case a refusal drops it.
