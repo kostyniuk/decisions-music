@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["decisions-music.ubu.a13x.space"],
   cacheComponents: true,
   partialPrefetching: true,
   images: {
