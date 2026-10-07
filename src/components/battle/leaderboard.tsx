@@ -8,6 +8,7 @@ import { LEVELS, type AlbumScore } from "@/lib/scoring";
 import type { Side } from "./arena";
 import { Cover } from "./arena";
 import { levelStyle, ScoreBar } from "./bits";
+import { MoodChips } from "./details";
 
 type Props = {
   albums: Album[];
@@ -66,7 +67,10 @@ function AlbumTile({
 
         {/* Description + arena controls on hover */}
         <div className="absolute inset-0 flex flex-col justify-between bg-black/80 p-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-          <p className="line-clamp-6 text-xs leading-relaxed text-white/80">{album.description}</p>
+          <div className="space-y-2">
+            <p className="line-clamp-5 text-xs leading-relaxed text-white/80">{album.description}</p>
+            <MoodChips moods={album.moods} max={3} className="justify-start" />
+          </div>
           <div className="flex gap-1.5">
             {(["left", "right"] as const).map((side) => (
               <button

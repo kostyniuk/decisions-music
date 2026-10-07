@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import type { Album } from "@/lib/albums";
 import type { AlbumScore } from "@/lib/scoring";
 import { CountUp, Distribution, Equalizer, levelStyle } from "./bits";
+import { AlbumDetails, MoodChips } from "./details";
 
 export type Side = "left" | "right";
 
@@ -121,7 +122,10 @@ function Slot({ side, album, score, direction, loading, outcome, onStep }: SlotP
           <p className="text-xs text-white/60 sm:text-sm">
             {album.artist} · {album.year}
           </p>
-          <p className="mt-2 line-clamp-3 hidden min-h-[3lh] text-xs leading-relaxed text-white/45 sm:block">{album.description}</p>
+          <div className="mt-2 hidden sm:block">
+            <p className="line-clamp-4 min-h-[4lh] text-xs leading-relaxed text-white/45">{album.description}</p>
+          </div>
+          <MoodChips moods={album.moods} className="mt-2 hidden min-h-[2lh] content-start sm:flex" />
         </motion.div>
       </AnimatePresence>
 
@@ -148,6 +152,8 @@ function Slot({ side, album, score, direction, loading, outcome, onStep }: SlotP
           <span className="mt-6 text-xs uppercase tracking-[0.3em] text-white/25">awaiting a word</span>
         )}
       </div>
+
+      <AlbumDetails key={album.id} album={album} />
     </motion.div>
   );
 }
