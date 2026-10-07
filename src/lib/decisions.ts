@@ -71,13 +71,13 @@ function toAlbumScore(id: string, answer: Decision["answers"][number] | undefine
   if (!answer || answer.type !== "score") {
     return { id, score: 0, level: "Refused", confidence: 0, distribution: [], refused: true };
   }
+  // `score` is the expected level value (e.g. 3.96 on a 0–4 rubric); the shown level is the most probable one.
   const maxValue = Math.max(...answer.probabilities.map((p) => p.value), 1);
-  const expected = answer.probabilities.reduce((sum, p) => sum + p.probability * p.value, 0);
-  const chosen = answer.probabilities.find((p) => p.value === answer.score);
+  const likeliest = answer.probabilities.reduce((a, b) => (b.probability > a.probability ? b : a));
   return {
     id,
-    score: Math.round((expected / maxValue) * 1000) / 10,
-    level: chosen?.label ?? LEVELS[Math.min(answer.score, LEVELS.length - 1)].label,
+    score: Math.round((answer.score / maxValue) * 1000) / 10,
+    level: likeliest.label,
     confidence: answer.confidence,
     distribution: answer.probabilities.map(({ label, probability }) => ({ label, probability })),
     refused: false,
@@ -100,7 +100,8 @@ async function mockDecision(params: DecisionCreateParams): Promise<Decision> {
       const total = weights.reduce((a, b) => a + b, 0);
       const probabilities = LEVELS.map((l, v) => ({ label: l.label, value: v, probability: weights[v] / total }));
       const best = probabilities.reduce((a, b) => (b.probability > a.probability ? b : a));
-      return { type: "score", name: q.name ?? null, score: best.value, confidence: best.probability, probabilities };
+      const expected = probabilities.reduce((sum, p) => sum + p.probability * p.value, 0);
+      return { type: "score", name: q.name ?? null, score: expected, confidence: best.probability, probabilities };
     }),
   };
 }
